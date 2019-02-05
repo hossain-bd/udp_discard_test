@@ -30,11 +30,12 @@ using namespace std;
 
 
 
+
 /*----------------------------------------------------------------------------*/
 /*--- 			 S O C K E T   T H R E A D         	           ---*/
 /*----------------------------------------------------------------------------*/
 
-static void *thread_socket(void *_) {
+static void *thread_socket(void * _) {
 
 
     //printf("Build Data...\n");
@@ -61,13 +62,13 @@ static void *thread_socket(void *_) {
     printf()*/
 
 
-/*----------------------------------------------------*/
-/*---       Initialize address protocol            ---*/
-/*----------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/*---       		Initialize address protocol     	           ---*/
+/*----------------------------------------------------------------------------*/
 
     bzero((char*)&server, sizeof(server));
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr(SERVERADDRESS);
+    server.sin_addr.s_addr = inet_addr(destination_ip);
     server.sin_port = htons(PORT);
 
     /*char clntIP[INET_ADDRSTRLEN];
@@ -78,9 +79,9 @@ static void *thread_socket(void *_) {
     getpeername(sockfd, (struct sockaddr*)&client, &len);
     char clntIP[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, (struct inaddr *)&client.sin_addr,clntIP,sizeof(clntIP));
-    printf("client IP is %s\n",clntIP);
+    //printf("\n\nclient IP is %s\n",clntIP);
 
-    connected();
+    // ### // connected();
 	
     /*int check = connected();
     if (check == -1) {
@@ -92,9 +93,9 @@ static void *thread_socket(void *_) {
 	puts("\nConnected ok");
 	}*/
 
-/*---------------------------------------------------*/
-/*--- 		S E N D I N G   D A T A 	   --*/
-/*---------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/*--- 			S E N D I N G   D A T A 			    --*/
+/*----------------------------------------------------------------------------*/
 
     //printf("\nSend UDP data...\n\n");
 
@@ -124,16 +125,15 @@ static void * thread_throughput(void * _) {
     
     //pthread_mutex_lock(&lock);
 
-    struct timespec start, end, new_start;
-    long double t_start, t_end;
+    struct timespec start_send, new_start;
 
-    end.tv_nsec = 0;
-    start.tv_nsec = 0;
+    start_send.tv_nsec = 0;
     new_start.tv_nsec = 0;
     //sleep(1);
     count_frame = 0;
 
-    clock_gettime(CLOCK_REALTIME, &time_start_offset);
+    clock_gettime(CLOCK_REALTIME, &time_start);
+    auto start = std::chrono::high_resolution_clock::now();
 
    
     while(1) {
@@ -142,7 +142,7 @@ static void * thread_throughput(void * _) {
 	//sleep(1);
         usleep(count_time * 1000);	// converts micro sleep to milisleep
 
-	start = new_start;
+	start_send = new_start;
 	clock_gettime(CLOCK_REALTIME, &new_start);
 
 
@@ -150,7 +150,7 @@ static void * thread_throughput(void * _) {
 	old_frame = count_frame;
 
 	//count_frame=0;
-	delta_ns = (new_start.tv_sec * 1000000000 + new_start.tv_nsec) - (start.tv_sec * 1000000000 + start.tv_nsec);
+	delta_ns = (new_start.tv_sec * 1000000000 + new_start.tv_nsec) - (start_send.tv_sec * 1000000000 + start_send.tv_nsec);
 
 	/*
 	if (new_start.tv_nsec > start.tv_nsec) {	
@@ -209,7 +209,7 @@ static void * thread_throughput(void * _) {
 	time_intermediate[count_loop] = (long int)new_start.tv_sec * 1000000000 + new_start.tv_nsec;
 	throughput_intermediate[count_loop] = throughput;
 	count_loop ++;
-	if (count_loop == sample_numbers) {
+	if (count_loop == sample_numbers+1) {
 		push_result();
 		//putchar(getchar());
 		//puts("\n");
@@ -226,43 +226,9 @@ static void * thread_throughput(void * _) {
 
 static void * thread_summery(void * _) {
 	while(getchar() != '\n' && getchar() != getchar());
-	
-	next:
-	close(sockfd);	
 
-	clock_gettime(CLOCK_REALTIME, &time_end_offset);
-	printf("\nstart time: %lld\n", (long long)time_start_offset.tv_sec * 1000000000 + time_start_offset.tv_nsec);
-	printf("\nstart time: %lld\n", (long long)time_end_offset.tv_sec * 1000000000 + time_end_offset.tv_nsec);
-	printf("\n########################################################\n");
-	printf("\nMeasurement finished...\n\n");
-	printf("Maximum throughput measured %0.1f Mbit/s\n", max_value);
-	printf("Minimum throughput measured %0.1f Mbit/s\n", min_value);
-	printf("Average throughput measured %0.1Lf Mbit/s\n\n", avg/(float)(count_loop - 1));
-	printf("Throughput error value : %f %% \n", (trace * 100) / (float)(count_loop) );
-	printf("Number of occurances of error value: %0.f\n\n", trace);
-
-	printf("Throughput value within 95 and 95.623 : %f %% \n", (trace_95 * 100) / (float)(count_loop) );
-	printf("Number of occurances within 95 and 95.623 : %0.f\n\n", trace_95);
-
-	printf("Throughput value less than 95 : %f %% \n", (trace_94 * 100) / (float)(count_loop) );
-	printf("Number of occurances less than 95 : %0.f\n\n", trace_94);
-	
-	if (total_time >= 60 && total_time < 3600) {
-		duration = total_time / 60;
-		printf("Total duration %0.0f minutes %d seconds %0.0f milliseconds \n\n", duration, ((int)total_time % 60), (total_time - (float)((int)total_time)) * 1000);
-	}
-
-	else if (total_time >= 3600) {
-		duration = total_time / 3600;
-		printf("Total duration %0.0f hours %d minutes %d seconds %0.0f milliseconds \n\n", duration, ((int)total_time % 3600) / 60 , ((int)total_time % 60), (total_time - (float)((int)total_time)) * 1000);
-	}
-	
-	else
-		printf("Total duration %0.0f seconds %0.0f milliseconds\n\n", total_time, (total_time - (float)((int)total_time)) * 1000);
-		
-	printf("########################################################\n\n");
-	push_result();
-
+	summery();
+	//push_result();
 	exit(0);	
 	}
 
@@ -273,6 +239,8 @@ static void * thread_summery(void * _) {
 
 int main(int argc, char **argv)
 {
+	clock_gettime(CLOCK_REALTIME, &time_code_start);
+
 	/**
 	 * You have no idea what order initial threads will be done with first
 	 */
@@ -281,12 +249,55 @@ int main(int argc, char **argv)
         	return 1;
     	}*/
 
-	if (argc != 2) {
-      		printf ("Required arguments: ./a.out <Number of samples>\n");
-      	exit (0);
+	
+	if (argc < 2) {
+      		//printf ("Required arguments: ./a.out -s <Number of samples>\n");
+      		//exit (0);
+		goto threads;
     	}
 
-	sample_numbers = atoi(argv[1]);
+
+	for(int k=0;k<argc;k++) {
+
+		if ( ! strcmp(argv[k], "-s")) { 
+			if (is_numeric(argv[k+1]) == false) {
+				error_number = 5001;
+				error_check(error_number);
+			}
+			else {
+				sample_numbers = atoi(argv[k+1]);
+				strcpy(destination_ip, SERVERADDRESS);
+				//printf("argument is %s\n", argv[k]);
+				//printf("value is %s\n", argv[k+1]);
+			}
+		}
+
+		if ( ! strcmp(argv[k], "-ip")) { 
+			//printf("argument is %s\n", argv[k]);
+			//printf("value is %s\n", argv[k+1]);
+			strcpy(destination_ip, argv[k+1]);
+		}
+		
+		if ( ! strcmp(argv[k], "--help")) { 
+			print_help();
+		}
+	}
+
+	
+	//printf("\nTarget ip is: %s",destination_ip);
+
+	printf("Starting ping test...");
+	check_ping = my_ping(destination_ip);
+	while(check_ping == false) {
+		printf("\nTarget mechine can not be reached...!\n");
+		check_ping = my_ping(destination_ip);
+	}
+	if (check_ping == true) {
+		printf("\nTarget mechine can be reached\n");
+	}	
+
+	// Label threads
+	threads:
 	pthread_create(&t[1], NULL, thread_socket, NULL);
 	pthread_create(&t[0], NULL, thread_throughput, NULL);
 	pthread_create(&t[2], NULL, thread_summery, NULL);
