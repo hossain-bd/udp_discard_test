@@ -1,4 +1,4 @@
-// Create executable file: g++ client.cpp -lpthread -lm -L. -lwiam-kpi-wrapper
+// Create executable file: g++ client.cpp -lpthread -lm -L. -lwiam-kpi-wrapper -o wiam_discard_test
 // Upload to the server: ./wiam-sync-client thesis/project https://wiam.dn.fh-koeln.de
 
 // Server address: https://wiam.dn.fh-koeln.de/measurementsets/?sort=-server_creation_timestamp&limit=2
@@ -253,7 +253,8 @@ int main(int argc, char **argv)
 	if (argc < 2) {
       		//printf ("Required arguments: ./a.out -s <Number of samples>\n");
       		//exit (0);
-		goto threads;
+		//goto threads;
+		print_help();
     	}
 
 
@@ -266,7 +267,7 @@ int main(int argc, char **argv)
 			}
 			else {
 				sample_numbers = atoi(argv[k+1]);
-				strcpy(destination_ip, SERVERADDRESS);
+				
 				//printf("argument is %s\n", argv[k]);
 				//printf("value is %s\n", argv[k+1]);
 			}
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
 	}	
 
 	// Label threads
-	threads:
+	//threads:
 	pthread_create(&t[1], NULL, thread_socket, NULL);
 	pthread_create(&t[0], NULL, thread_throughput, NULL);
 	pthread_create(&t[2], NULL, thread_summery, NULL);
