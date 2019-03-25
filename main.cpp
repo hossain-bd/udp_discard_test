@@ -1,4 +1,4 @@
-// Create executable file: g++ client.cpp -lpthread -lm -L. -lwiam-kpi-wrapper -o wiam_discard_test
+// Create executable file: g++ client.cpp -lpthread -lm -L. -lwiam-kpi-wrapper -o wiam_udp_discard
 // Upload to the server: ./wiam-sync-client thesis/project https://wiam.dn.fh-koeln.de
 
 // Server address: https://wiam.dn.fh-koeln.de/measurementsets/?sort=-server_creation_timestamp&limit=2
@@ -19,11 +19,16 @@
  * ar rcs libwiam-kpi-wrapper.a client.o
  * This will create a.out file
  *
+ *
+ *usage: ./wiam_udp_discard -ip 192.168.178.27 -s 10
+ *
+ *
 
 */
 
 #include "common.h"
 #include "helper.cpp"
+
 
 
 using namespace std;
@@ -38,9 +43,9 @@ using namespace std;
 static void *thread_socket(void * _) {
 
 
-    //printf("Build Data...\n");
-    build((uint8_t*)buffer, sizeof(buffer));
-
+/*    
+    //build((uint8_t*)buffer, sizeof(buffer));
+*/
     //printf("Configure socket...\n");
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);	// SOCK_DGRAM, SOCK_STREAM
     if (sockfd < 0)
@@ -101,15 +106,20 @@ static void *thread_socket(void * _) {
 
     //for (int j = 0; j < BUFFER_SIZE; j += UDP_FRAME) {
     //for (j=0; j < sample_numbers; j++) { 
+    
+    //int msg_id = 198800000000000;
+    unsigned long long int msg = 0;
     while(1) {	
 
+ 	buffer = msg;
         if (sendto(sockfd, &buffer, UDP_FRAME, 0,
                     (const struct sockaddr*)&server, sizeof(server)) < 0)
         {
             //fprintf(stderr, "Error in sendto()\n");
             //return EXIT_FAILURE;
         }
-	count_frame += 1;    
+	count_frame += 1; 
+	msg += 1;   
     }
     close(sockfd);
 
@@ -251,10 +261,10 @@ int main(int argc, char **argv)
 
 	
 	if (argc < 2) {
-      		//printf ("Required arguments: ./a.out -s <Number of samples>\n");
+      		//printf ("Required arguments: ./wiam_udp_discard \n");
       		//exit (0);
 		//goto threads;
-		print_help();
+		print_help;
     	}
 
 
@@ -267,7 +277,7 @@ int main(int argc, char **argv)
 			}
 			else {
 				sample_numbers = atoi(argv[k+1]);
-				
+				//strcpy(destination_ip, SERVERADDRESS);
 				//printf("argument is %s\n", argv[k]);
 				//printf("value is %s\n", argv[k+1]);
 			}
@@ -298,7 +308,7 @@ int main(int argc, char **argv)
 	}	
 
 	// Label threads
-	//threads:
+	threads:
 	pthread_create(&t[1], NULL, thread_socket, NULL);
 	pthread_create(&t[0], NULL, thread_throughput, NULL);
 	pthread_create(&t[2], NULL, thread_summery, NULL);
