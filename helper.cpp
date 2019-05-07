@@ -47,13 +47,21 @@ int rand_my() {
  * Populate the buffer with random data.
  */
 
-/*
+
 void build(uint8_t* buffer, size_t length) {	// size_t is unsigned integer type of at least 16 bit
     for (size_t i = 0; i < length; i++) {
         buffer[i] = (rand_my() % 255) + 1;
     }
 }
-*/
+
+
+void build_payload(uint64_t* buffer, size_t length, unsigned long long int msg) {
+    buffer[0] = msg;
+    buffer[1] = 0;
+    for(size_t i = 2; i < length; i++) {
+	buffer[i] = 1;
+    }
+}
 
 bool is_numeric(char *string)
 {
@@ -101,6 +109,9 @@ void error_check( int error_number) {
 
 
 void summery () {
+
+	buffer[0] = 999999;
+	sendto(sockfd, &buffer, BUFFER_SIZE, 0, (const struct sockaddr*)&server, sizeof(server));
 
 	close(sockfd);	
 
