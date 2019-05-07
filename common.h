@@ -41,7 +41,7 @@ using namespace std;
 
 
 #define FRAMES (1)	// 1 for while loop
-#define UDP_FRAME (1442)
+#define UDP_FRAME (1440)
 
 #define BUFFER_SIZE (FRAMES * UDP_FRAME)
 
@@ -77,7 +77,7 @@ double 			sample_numbers = -INFINITY;
 
 pthread_t 		t [ NUMTHRDS ];
 
-unsigned long long int 	total_dgram, buffer = 0,
+unsigned long long int 	total_dgram, buffer[180],
 		       	count_frame = 0, 
 		       	old_frame = 0, 
 		       	delta_frame = 0, 
@@ -87,7 +87,7 @@ unsigned long long int 	total_dgram, buffer = 0,
 			time_end_nsec,
 			time_code_start_nsec;
 
-char 			//buffer, //buffer[BUFFER_SIZE], 
+char 			//buffer[BUFFER_SIZE], 
      			snd_buffer[100000000], 
      			ch;
 
