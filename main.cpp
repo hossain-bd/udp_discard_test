@@ -43,9 +43,9 @@ using namespace std;
 static void *thread_socket(void * _) {
 
 
-/*    
+
     //build((uint8_t*)buffer, sizeof(buffer));
-*/
+
     //printf("Configure socket...\n");
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);	// SOCK_DGRAM, SOCK_STREAM
     if (sockfd < 0)
@@ -106,13 +106,14 @@ static void *thread_socket(void * _) {
 
     //for (int j = 0; j < BUFFER_SIZE; j += UDP_FRAME) {
     //for (j=0; j < sample_numbers; j++) { 
-    
+
     //int msg_id = 198800000000000;
     unsigned long long int msg = 0;
     while(1) {	
 
- 	buffer = msg;
-        if (sendto(sockfd, &buffer, UDP_FRAME, 0,
+ 	//buffer = msg;
+	build_payload((uint64_t*)buffer, 8, msg);
+        if (sendto(sockfd, &buffer, sizeof(buffer), 0,
                     (const struct sockaddr*)&server, sizeof(server)) < 0)
         {
             //fprintf(stderr, "Error in sendto()\n");
@@ -173,14 +174,14 @@ static void * thread_throughput(void * _) {
 
 	//throughput_Byte = (float)(count_frame * 1442) / (delta_ns/ 1e9f));	
 	//throughput_bit = (8 * (float)(count_frame * 1442) / (delta_ns/ 1e9f));
-	throughput_Mbit = floor(((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1000000)*100) / 100;
+	//throughput_Mbit = floor(((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1000000)*100) / 100;
 
-
+	throughput_Mbit = floor((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1000000);
 
 	if (count_loop != 0.00) {
 
 	printf("\nInterval between loops  : %f[s]",delta_ns / 1e9f);
-	printf("\nTotal datagrams sent: %llu\n", delta_frame * UDP_FRAME);
+	printf("\nTotal frames sent: %llu\n", delta_frame);
 
 	throughput = throughput_Mbit;
 
@@ -198,23 +199,12 @@ static void * thread_throughput(void * _) {
 		printf("\u2591");
 	}
 
-	printf(" Throughput %0.1f Mbit/s\n", throughput);
+	printf(" Throughput %llu: %0.1f Mbit/s\n", count_loop, throughput);
 	printf("\u2588\u2588\n");
 	
 
 	total_time += (float)count_time / 1000.000;	// in seconds
 	}
-	
-	if (throughput > 95.623) {
-		trace+=1;
-	}
-
-	if (throughput <= 95.623 && throughput > 94.9) {
-		trace_95 += 1;
-	}
-
-	if (throughput <= 94.9)
-		trace_94 += 1;
 
 	time_intermediate[count_loop] = (long int)new_start.tv_sec * 1000000000 + new_start.tv_nsec;
 	throughput_intermediate[count_loop] = throughput;
