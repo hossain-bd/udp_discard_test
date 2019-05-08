@@ -54,18 +54,6 @@ static void *thread_socket(void * _) {
         exit(1);
     }
 
-    /*
-    if(setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &snd_buffer, sizeof(snd_buffer)) < 0) {
-	fprintf(stderr, "Error setting Send buffer size.");
-        exit(1);
-    }*/
-
-	/*
-    // Get buffer size
-    optlen = sizeof(sendbuff);
-    res = getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendbuff, &optlen);
-    printf()*/
-
 
 /*----------------------------------------------------------------------------*/
 /*---       		Initialize address protocol     	           ---*/
@@ -76,43 +64,27 @@ static void *thread_socket(void * _) {
     server.sin_addr.s_addr = inet_addr(destination_ip);
     server.sin_port = htons(PORT);
 
-    /*char clntIP[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, (struct inaddr *)&client.sin_addr,clntIP,sizeof(clntIP));
-    printf("client IP is %s\n",clntIP);*/
 
     socklen_t len = sizeof(sockaddr_in);
     getpeername(sockfd, (struct sockaddr*)&client, &len);
     char clntIP[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, (struct inaddr *)&client.sin_addr,clntIP,sizeof(clntIP));
-    //printf("\n\nclient IP is %s\n",clntIP);
 
-    // ### // connected();
-	
-    /*int check = connected();
-    if (check == -1) {
-	printf("\nfunction value : %d",check);
-	printf("\nconnect error");
-    }
-    else {
-	printf("\nfunction value : %d",check);
-	puts("\nConnected ok");
-	}*/
 
 /*----------------------------------------------------------------------------*/
 /*--- 			S E N D I N G   D A T A 			    --*/
-/*----------------------------------------------------------------------------*/
+/*-------------------------------------------------------
+---------------------*/
 
-    //printf("\nSend UDP data...\n\n");
-
-    //for (int j = 0; j < BUFFER_SIZE; j += UDP_FRAME) {
-    //for (j=0; j < sample_numbers; j++) { 
-
-    //int msg_id = 198800000000000;
     unsigned long long int msg = 0;
+
+    clock_gettime(CLOCK_REALTIME, &send_start);
     while(1) {	
 
  	//buffer = msg;
-	build_payload((uint64_t*)buffer, 8, msg);
+	build_payload((uint64_t*)buffer, 8, msg, (int) sample_numbers);
+	
+
         if (sendto(sockfd, &buffer, sizeof(buffer), 0,
                     (const struct sockaddr*)&server, sizeof(server)) < 0)
         {
@@ -126,7 +98,6 @@ static void *thread_socket(void * _) {
 
 }
 
-
 /*----------------------------------------------------------------------------*/
 /*--- 		     T H R O U G H P U T   T H R E A D        	           ---*/
 /*----------------------------------------------------------------------------*/
@@ -136,9 +107,9 @@ static void * thread_throughput(void * _) {
     
     //pthread_mutex_lock(&lock);
 
-    struct timespec start_send, new_start;
+    struct timespec prev_time, new_start;
 
-    start_send.tv_nsec = 0;
+    prev_time.tv_nsec = 0;
     new_start.tv_nsec = 0;
     //sleep(1);
     count_frame = 0;
@@ -148,35 +119,30 @@ static void * thread_throughput(void * _) {
 
    
     while(1) {
-	
 
 	//sleep(1);
-        usleep(count_time * 1000);	// converts micro sleep to milisleep
+        usleep(count_time * 1000);	// converts microsleep to milisleep
 
-	start_send = new_start;
+	prev_time = new_start;
 	clock_gettime(CLOCK_REALTIME, &new_start);
 
 
-	delta_frame = count_frame - old_frame;	
+	delta_frame = count_frame - old_frame;
+	clock_gettime(CLOCK_REALTIME, &intermediate_time);
+		
+	printf("\nTime passed from starting: %f\n", ((intermediate_time.tv_sec * 1e9 + intermediate_time.tv_nsec) - (send_start.tv_sec * 1e9 + send_start.tv_nsec)) / 1e9);
+
 	old_frame = count_frame;
 
 	//count_frame=0;
-	delta_ns = (new_start.tv_sec * 1000000000 + new_start.tv_nsec) - (start_send.tv_sec * 1000000000 + start_send.tv_nsec);
-
-	/*
-	if (new_start.tv_nsec > start.tv_nsec) {	
-		delta_ns = (new_start.tv_nsec - start.tv_nsec);
-	}
-	else
-		delta_ns = (start.tv_nsec - new_start.tv_nsec);
-	*/
+	delta_ns = (new_start.tv_sec * 1e9 + new_start.tv_nsec) - (prev_time.tv_sec * 1e9 + prev_time.tv_nsec);
 		
 
 	//throughput_Byte = (float)(count_frame * 1442) / (delta_ns/ 1e9f));	
 	//throughput_bit = (8 * (float)(count_frame * 1442) / (delta_ns/ 1e9f));
-	//throughput_Mbit = floor(((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1000000)*100) / 100;
+	throughput_Mbit = floor(((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1e6)*100) / 100;
 
-	throughput_Mbit = floor((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1000000);
+	//throughput_Mbit = floor((8 * (float)(delta_frame * UDP_FRAME) / (delta_ns/ 1e9f)) / 1e6);
 
 	if (count_loop != 0.00) {
 
@@ -199,7 +165,7 @@ static void * thread_throughput(void * _) {
 		printf("\u2591");
 	}
 
-	printf(" Throughput %llu: %0.1f Mbit/s\n", count_loop, throughput);
+	printf(" Throughput %llu: %0.2f Mbit/s\n", count_loop, throughput);
 	printf("\u2588\u2588\n");
 	
 
@@ -228,7 +194,6 @@ static void * thread_summery(void * _) {
 	while(getchar() != '\n' && getchar() != getchar());
 
 	summery();
-	//push_result();
 	exit(0);	
 	}
 
@@ -244,16 +209,10 @@ int main(int argc, char **argv)
 	/**
 	 * You have no idea what order initial threads will be done with first
 	 */
-	/*if (pthread_mutex_init(&lock, NULL) != 0) {
-        	printf("\n mutex init failed\n");
-        	return 1;
-    	}*/
 
 	
 	if (argc < 2) {
-      		//printf ("Required arguments: ./wiam_udp_discard \n");
-      		//exit (0);
-		//goto threads;
+
 		print_help;
     	}
 
@@ -267,15 +226,11 @@ int main(int argc, char **argv)
 			}
 			else {
 				sample_numbers = atoi(argv[k+1]);
-				//strcpy(destination_ip, SERVERADDRESS);
-				//printf("argument is %s\n", argv[k]);
-				//printf("value is %s\n", argv[k+1]);
+
 			}
 		}
 
 		if ( ! strcmp(argv[k], "-ip")) { 
-			//printf("argument is %s\n", argv[k]);
-			//printf("value is %s\n", argv[k+1]);
 			strcpy(destination_ip, argv[k+1]);
 		}
 		
@@ -284,8 +239,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	
-	//printf("\nTarget ip is: %s",destination_ip);
 
 	printf("Starting ping test...");
 	check_ping = my_ping(destination_ip);
