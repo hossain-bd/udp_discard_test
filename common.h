@@ -41,14 +41,13 @@ using namespace std;
 
 
 #define FRAMES (1)	// 1 for while loop
-#define UDP_FRAME (1440)
+#define UDP_FRAME (1472)
 
 #define BUFFER_SIZE (FRAMES * UDP_FRAME)
 
 
-// Data (1442) + UDP (8) + IP (20) + Ethernet (14) = 1484 bytes
 
-// Data (1442) + UDP (8) + IP (20) + [ Ethernet (14) + (4) ] = 1484 bytes
+// Payload (1472) + UDP Datagram (8) + IP Packet (20) + Frame [ Ethernet (14) + FCS (4) ] = 1484 bytes
 
 bool 			check_ping;
 
@@ -62,7 +61,9 @@ char 			arg_ip[] = "-ip",
 
 struct timespec 	time_start, 
 			time_end,
-			time_code_start;
+			time_code_start,
+			intermediate_time,
+			send_start;
 
 struct sockaddr_in 	server, 
 		   	client, clntIP;
@@ -73,11 +74,11 @@ int 			sockfd,
     			count_time = 1000, 
     			error_number = 0; // count_time defined in milliseconds
 
-double 			sample_numbers = -INFINITY;
+double			sample_numbers = -INFINITY;
 
 pthread_t 		t [ NUMTHRDS ];
 
-unsigned long long int 	total_dgram, buffer[180],
+unsigned long long int 	total_dgram, buffer[184],
 		       	count_frame = 0, 
 		       	old_frame = 0, 
 		       	delta_frame = 0, 
@@ -86,6 +87,7 @@ unsigned long long int 	total_dgram, buffer[180],
 			time_start_nsec,
 			time_end_nsec,
 			time_code_start_nsec;
+
 
 char 			//buffer[BUFFER_SIZE], 
      			snd_buffer[100000000], 
