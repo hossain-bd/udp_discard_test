@@ -55,11 +55,12 @@ void build(uint8_t* buffer, size_t length) {	// size_t is unsigned integer type 
 }
 
 
-void build_payload(uint64_t* buffer, size_t length, unsigned long long int msg) {
+void build_payload(uint64_t* buffer, size_t length, unsigned long long int msg, int no_of_samples) {
     buffer[0] = msg;
     buffer[1] = 0;
-    for(size_t i = 2; i < length; i++) {
-	buffer[i] = 1;
+    buffer[2] = no_of_samples;
+    for(size_t i = 3; i < length; i++) {
+	buffer[i] = 18446744073709551615;
     }
 }
 
@@ -138,17 +139,10 @@ void summery () {
 	}
 
 	printf("\nMeasurement finished...\n\n");
+	printf("Average throughput measured %0.1Lf Mbit/s\n", avg/(float)(count_loop - 1));
 	printf("Maximum throughput measured %0.1f Mbit/s\n", max_value);
-	printf("Minimum throughput measured %0.1f Mbit/s\n", min_value);
-	printf("Average throughput measured %0.1Lf Mbit/s\n\n", avg/(float)(count_loop - 1));
-	//printf("Throughput error value : %f %% \n", (trace * 100) / (float)(count_loop) );
-	//printf("Number of occurances of error value: %0.f\n\n", trace);
+	printf("Minimum throughput measured %0.1f Mbit/s\n\n", min_value);
 
-	//printf("Throughput value within 95 and 95.623 : %f %% \n", (trace_95 * 100) / (float)(count_loop) );
-	//printf("Number of occurances within 95 and 95.623 : %0.f\n\n", trace_95);
-
-	//printf("Throughput value less than 95 : %f %% \n", (trace_94 * 100) / (float)(count_loop) );
-	//printf("Number of occurances less than 95 : %0.f\n\n", trace_94);
 	
 	if (total_time >= 60 && total_time < 3600) {
 		duration = total_time / 60;
