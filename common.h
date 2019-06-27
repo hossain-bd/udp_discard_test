@@ -47,7 +47,7 @@ using namespace std;
 
 
 
-// Payload (1472) + UDP Datagram (8) + IP Packet (20) + Frame [ Ethernet (14) + FCS (4) ] = 1484 bytes
+// Payload (1472) + UDP Datagram (8) + IP Packet (20) + Frame [ Ethernet (14) + FCS (4) ] = 1518 bytes
 
 bool 			check_ping;
 
